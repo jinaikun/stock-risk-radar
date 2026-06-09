@@ -1,6 +1,5 @@
 const storageKey = "jnk-stock-discipline-assistant";
 const analyticsConfig = {
-  goatcounterEndpoint: "jnk",
   feedbackEmail: "jinaikun@gmail.com"
 };
 
@@ -56,7 +55,6 @@ const defaultState = {
 const state = loadState();
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
-let analyticsReady = false;
 
 function loadState() {
   try {
@@ -86,25 +84,8 @@ function saveState() {
   localStorage.setItem(storageKey, JSON.stringify(payload));
 }
 
-function initAnalytics() {
-  if (!analyticsConfig.goatcounterEndpoint) return;
-  if (document.querySelector('script[data-goatcounter-script="true"]')) return;
-  window.goatcounter = window.goatcounter || {};
-  window.goatcounter.allow_local = true;
-  const script = document.createElement("script");
-  script.async = true;
-  script.dataset.goatcounterScript = "true";
-  script.dataset.goatcounter = `https://${analyticsConfig.goatcounterEndpoint}.goatcounter.com/count`;
-  script.src = "https://gc.zgo.at/count.js";
-  script.addEventListener("load", () => {
-    analyticsReady = true;
-    trackEvent("page_view_ready", "analytics_loaded");
-  });
-  document.head.appendChild(script);
-}
-
 function trackEvent(path, title) {
-  if (!analyticsReady || !window.goatcounter || typeof window.goatcounter.count !== "function") return;
+  if (!window.goatcounter || typeof window.goatcounter.count !== "function") return;
   window.goatcounter.count({
     path: () => `event/${path}`,
     title,
@@ -534,9 +515,9 @@ function bindActions() {
   });
 }
 
-initAnalytics();
 bindTabs();
 bindForms();
 bindRules();
 bindActions();
 renderAll();
+trackEvent("page_ready", "page_ready");
