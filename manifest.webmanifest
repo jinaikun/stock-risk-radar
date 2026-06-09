@@ -1,0 +1,11 @@
+{
+  "name": "股票交易纪律助手",
+  "short_name": "纪律助手",
+  "description": "A public stock risk alert and daily review assistant.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f5f7fb",
+  "theme_color": "#0f172a",
+  "orientation": "portrait",
+  "icons": []
+}

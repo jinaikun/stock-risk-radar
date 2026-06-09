@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f172a" />
+    <title>股票交易纪律助手</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Public Beta</p>
+          <h1>股票交易纪律助手</h1>
+        </div>
+        <button class="icon-button" id="themeToggle" title="切换主题" aria-label="切换主题">
+          <span>◐</span>
+        </button>
+      </header>
+
+      <main>
+        <section class="view active" id="view-dashboard" aria-label="总览">
+          <div class="market-strip">
+            <div>
+              <span>沪深300</span>
+              <strong>4,804.18</strong>
+              <small class="down">-0.42%</small>
+            </div>
+            <div>
+              <span>预警余额</span>
+              <strong id="tokenBalance">186</strong>
+              <small>tokens</small>
+            </div>
+            <div>
+              <span>今日复盘</span>
+              <strong id="reviewState">待生成</strong>
+              <small>15:30</small>
+            </div>
+          </div>
+
+          <div class="risk-hero">
+            <div>
+              <p>今日风险</p>
+              <h2 id="heroRiskText">正在计算</h2>
+            </div>
+            <button id="runScanBtn">立即扫描</button>
+          </div>
+
+          <div class="severity-grid">
+            <article class="metric severe">
+              <span>严重</span>
+              <strong id="severeCount">0</strong>
+            </article>
+            <article class="metric warning">
+              <span>警戒</span>
+              <strong id="warningCount">0</strong>
+            </article>
+            <article class="metric watch">
+              <span>观察</span>
+              <strong id="watchCount">0</strong>
+            </article>
+            <article class="metric stable">
+              <span>正常</span>
+              <strong id="stableCount">0</strong>
+            </article>
+          </div>
+
+          <div class="section-head">
+            <h3>实时预警</h3>
+            <button class="text-button" id="clearAlertsBtn">清空</button>
+          </div>
+          <div class="alert-feed" id="alertFeed"></div>
+        </section>
+
+        <section class="view" id="view-positions" aria-label="持仓">
+          <div class="section-head">
+            <h3>持仓股票</h3>
+            <button class="text-button" id="addPositionBtn">添加</button>
+          </div>
+          <form class="input-panel" id="positionForm">
+            <label>
+              股票代码
+              <input required name="code" id="positionCode" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="002436" />
+            </label>
+            <label>
+              股票名称
+              <input name="name" id="positionName" placeholder="自动识别" readonly />
+            </label>
+            <label>
+              成本价
+              <input required name="cost" inputmode="decimal" placeholder="39.62" />
+            </label>
+            <label>
+              当前价
+              <input name="price" id="positionPrice" inputmode="decimal" placeholder="自动填入" readonly />
+            </label>
+            <label>
+              持仓天数
+              <input required name="days" inputmode="numeric" placeholder="3" />
+            </label>
+            <div class="quote-preview" id="positionQuotePreview">
+              输入6位股票代码后自动识别名称和当前价
+            </div>
+            <button type="submit">保存持仓</button>
+          </form>
+          <div class="stock-list" id="positionList"></div>
+        </section>
+
+        <section class="view" id="view-watchlist" aria-label="自选">
+          <div class="section-head">
+            <h3>自选监控</h3>
+            <button class="text-button" id="addWatchBtn">添加</button>
+          </div>
+          <form class="input-panel compact" id="watchForm">
+            <label>
+              股票代码
+              <input required name="code" placeholder="300750.SZ" />
+            </label>
+            <label>
+              股票名称
+              <input required name="name" placeholder="宁德时代" />
+            </label>
+            <label>
+              触发价
+              <input required name="trigger" inputmode="decimal" placeholder="215.00" />
+            </label>
+            <button type="submit">加入自选</button>
+          </form>
+          <div class="stock-list" id="watchList"></div>
+        </section>
+
+        <section class="view" id="view-rules" aria-label="规则">
+          <div class="section-head">
+            <h3>预警条件</h3>
+            <button class="text-button" id="resetRulesBtn">重置</button>
+          </div>
+          <div class="rules-panel">
+            <label>
+              硬止损
+              <span id="hardStopLabel">-6.0%</span>
+              <input id="hardStop" type="range" min="3" max="12" step="0.5" value="6" />
+            </label>
+            <label>
+              ATR止损倍数
+              <span id="atrStopLabel">2.0x</span>
+              <input id="atrStop" type="range" min="1" max="4" step="0.5" value="2" />
+            </label>
+            <label>
+              ATR止盈倍数
+              <span id="atrTakeLabel">3.0x</span>
+              <input id="atrTake" type="range" min="1" max="6" step="0.5" value="3" />
+            </label>
+            <label>
+              移动止盈启动
+              <span id="trailStartLabel">5.0%</span>
+              <input id="trailStart" type="range" min="2" max="12" step="0.5" value="5" />
+            </label>
+            <label>
+              最大持仓天数
+              <span id="maxDaysLabel">12天</span>
+              <input id="maxDays" type="range" min="3" max="30" step="1" value="12" />
+            </label>
+          </div>
+
+          <div class="product-panel">
+            <div>
+              <p class="eyebrow">Token Engine</p>
+              <h3>AI复盘按次消耗</h3>
+              <p>基础预警免费，AI解释、纪律评分、明日观察清单消耗 tokens。</p>
+            </div>
+            <button id="buyTokenBtn">充值 100</button>
+          </div>
+        </section>
+
+        <section class="view" id="view-review" aria-label="复盘">
+          <div class="section-head">
+            <h3>收盘复盘</h3>
+            <button class="text-button" id="makeReviewBtn">生成</button>
+          </div>
+          <article class="review-card" id="reviewCard">
+            <p class="muted">收盘后生成今日纪律复盘。</p>
+          </article>
+        </section>
+      </main>
+
+      <nav class="tabbar" aria-label="主导航">
+        <button class="tab active" data-view="dashboard">总览</button>
+        <button class="tab" data-view="positions">持仓</button>
+        <button class="tab" data-view="watchlist">自选</button>
+        <button class="tab" data-view="rules">规则</button>
+        <button class="tab" data-view="review">复盘</button>
+      </nav>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>
