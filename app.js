@@ -88,12 +88,14 @@ function saveState() {
 
 function initAnalytics() {
   if (!analyticsConfig.goatcounterEndpoint) return;
-  if (document.querySelector('script[data-goatcounter="true"]')) return;
+  if (document.querySelector('script[data-goatcounter-script="true"]')) return;
+  window.goatcounter = window.goatcounter || {};
+  window.goatcounter.allow_local = true;
   const script = document.createElement("script");
   script.async = true;
-  script.dataset.goatcounter = "true";
-  script.dataset.goatcounterSettings = '{"allow_local": true}';
-  script.src = `https://${analyticsConfig.goatcounterEndpoint}.goatcounter.com/count.js`;
+  script.dataset.goatcounterScript = "true";
+  script.dataset.goatcounter = `https://${analyticsConfig.goatcounterEndpoint}.goatcounter.com/count`;
+  script.src = "https://gc.zgo.at/count.js";
   script.addEventListener("load", () => {
     analyticsReady = true;
     trackEvent("page_view_ready", "analytics_loaded");
