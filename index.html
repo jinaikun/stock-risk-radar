@@ -77,7 +77,6 @@
         <section class="view" id="view-positions" aria-label="持仓">
           <div class="section-head">
             <h3>持仓股票</h3>
-            <button class="text-button" id="addPositionBtn">添加</button>
           </div>
           <form class="input-panel" id="positionForm">
             <label>
@@ -100,9 +99,7 @@
               持仓天数
               <input required name="days" inputmode="numeric" placeholder="3" />
             </label>
-            <div class="quote-preview" id="positionQuotePreview">
-              输入6位股票代码后自动识别名称和当前价
-            </div>
+            <div class="quote-preview" id="positionQuotePreview">输入 6 位股票代码后自动识别名称和当前价</div>
             <button type="submit">保存持仓</button>
           </form>
           <div class="stock-list" id="positionList"></div>
@@ -111,21 +108,25 @@
         <section class="view" id="view-watchlist" aria-label="自选">
           <div class="section-head">
             <h3>自选监控</h3>
-            <button class="text-button" id="addWatchBtn">添加</button>
           </div>
           <form class="input-panel compact" id="watchForm">
             <label>
               股票代码
-              <input required name="code" placeholder="300750.SZ" />
+              <input required name="code" id="watchCode" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="300750" />
             </label>
             <label>
               股票名称
-              <input required name="name" placeholder="宁德时代" />
+              <input name="name" id="watchName" placeholder="自动识别" readonly />
+            </label>
+            <label>
+              当前价
+              <input name="price" id="watchPrice" inputmode="decimal" placeholder="自动填入" readonly />
             </label>
             <label>
               触发价
               <input required name="trigger" inputmode="decimal" placeholder="215.00" />
             </label>
+            <div class="quote-preview" id="watchQuotePreview">输入 6 位股票代码后自动识别名称和当前价</div>
             <button type="submit">加入自选</button>
           </form>
           <div class="stock-list" id="watchList"></div>
@@ -167,8 +168,8 @@
           <div class="product-panel">
             <div>
               <p class="eyebrow">Token Engine</p>
-              <h3>AI复盘按次消耗</h3>
-              <p>基础预警免费，AI解释、纪律评分、明日观察清单消耗 tokens。</p>
+              <h3>AI 复盘按次消耗</h3>
+              <p>基础预警免费，AI 解释、纪律评分、明日观察清单消耗 tokens。</p>
             </div>
             <button id="buyTokenBtn">充值 100</button>
           </div>
@@ -184,6 +185,11 @@
           </article>
         </section>
       </main>
+
+      <footer class="footer-bar">
+        <span>模拟行情演示版</span>
+        <span>© JNK</span>
+      </footer>
 
       <nav class="tabbar" aria-label="主导航">
         <button class="tab active" data-view="dashboard">总览</button>

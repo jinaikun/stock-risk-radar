@@ -144,6 +144,10 @@ h3 {
   color: var(--danger) !important;
 }
 
+.up {
+  color: var(--stable);
+}
+
 .risk-hero {
   min-height: 118px;
   padding: 18px;
@@ -371,6 +375,16 @@ form button {
 
 .review-card {
   min-height: 220px;
+}
+
+.footer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .review-card h4 {
