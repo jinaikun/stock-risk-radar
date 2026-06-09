@@ -1,4 +1,8 @@
 const storageKey = "jnk-stock-discipline-assistant";
+const analyticsConfig = {
+  goatcounterEndpoint: "jnk",
+  feedbackEmail: "jinaikun@gmail.com"
+};
 
 const quoteBook = {
   "000001": { code: "000001.SZ", name: "平安银行", price: 11.24, atr: 0.31, change: -0.62 },
@@ -52,6 +56,7 @@ const defaultState = {
 const state = loadState();
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+let analyticsReady = false;
 
 function loadState() {
   try {
@@ -79,6 +84,30 @@ function saveState() {
     watchlist: state.watchlist
   };
   localStorage.setItem(storageKey, JSON.stringify(payload));
+}
+
+function initAnalytics() {
+  if (!analyticsConfig.goatcounterEndpoint) return;
+  if (document.querySelector('script[data-goatcounter="true"]')) return;
+  const script = document.createElement("script");
+  script.async = true;
+  script.dataset.goatcounter = "true";
+  script.dataset.goatcounterSettings = '{"allow_local": true}';
+  script.src = `https://${analyticsConfig.goatcounterEndpoint}.goatcounter.com/count.js`;
+  script.addEventListener("load", () => {
+    analyticsReady = true;
+    trackEvent("page_view_ready", "analytics_loaded");
+  });
+  document.head.appendChild(script);
+}
+
+function trackEvent(path, title) {
+  if (!analyticsReady || !window.goatcounter || typeof window.goatcounter.count !== "function") return;
+  window.goatcounter.count({
+    path: () => `event/${path}`,
+    title,
+    event: true
+  });
 }
 
 function normalizeDigits(rawCode) {
@@ -310,6 +339,7 @@ function renderRules() {
 function makeReview() {
   if (state.tokens < 12) {
     $("#reviewCard").innerHTML = `<p class="muted">tokens 不足，无法生成 AI 复盘。</p>`;
+    trackEvent("review_blocked", "review_insufficient_tokens");
     return;
   }
 
@@ -329,6 +359,7 @@ function makeReview() {
     </ul>
   `;
   saveState();
+  trackEvent("review_generate", "generate_review");
   renderDashboard();
 }
 
@@ -403,6 +434,7 @@ function bindForms() {
       change: quote.change
     });
     saveState();
+    trackEvent("position_add", `add_position_${quote.code}`);
     event.currentTarget.reset();
     updateQuotePreview("position", null);
     renderAll();
@@ -421,6 +453,7 @@ function bindForms() {
       change: quote.change
     });
     saveState();
+    trackEvent("watch_add", `add_watch_${quote.code}`);
     event.currentTarget.reset();
     updateQuotePreview("watch", null);
     renderAll();
@@ -445,18 +478,21 @@ function bindRules() {
   $("#resetRulesBtn").addEventListener("click", () => {
     state.rules = { hardStop: 6, atrStop: 2, atrTake: 3, trailStart: 5, maxDays: 12 };
     saveState();
+    trackEvent("rules_reset", "reset_rules");
     renderAll();
   });
 }
 
 function bindActions() {
   $("#runScanBtn").addEventListener("click", () => {
+    trackEvent("scan_run", "run_scan");
     renderAll();
   });
 
   $("#clearAlertsBtn").addEventListener("click", () => {
     state.alerts = [];
     $("#alertFeed").innerHTML = `<article class="alert-item"><strong>预警已清空</strong><p>下一次扫描会重新生成。</p></article>`;
+    trackEvent("alerts_clear", "clear_alerts");
   });
 
   $("#makeReviewBtn").addEventListener("click", makeReview);
@@ -464,13 +500,19 @@ function bindActions() {
   $("#buyTokenBtn").addEventListener("click", () => {
     state.tokens += 100;
     saveState();
+    trackEvent("token_buy", "buy_token_100");
     renderDashboard();
   });
 
   $("#themeToggle").addEventListener("click", () => {
     state.dark = !state.dark;
     saveState();
+    trackEvent("theme_toggle", state.dark ? "theme_dark" : "theme_light");
     renderAll();
+  });
+
+  $("#feedbackLink").addEventListener("click", () => {
+    trackEvent("feedback_click", "open_feedback_email");
   });
 
   document.addEventListener("click", (event) => {
@@ -479,15 +521,18 @@ function bindActions() {
     const index = Number(button.dataset.index);
     if (button.dataset.kind === "position") {
       state.positions.splice(index, 1);
+      trackEvent("position_remove", `remove_position_${index}`);
     }
     if (button.dataset.kind === "watch") {
       state.watchlist.splice(index, 1);
+      trackEvent("watch_remove", `remove_watch_${index}`);
     }
     saveState();
     renderAll();
   });
 }
 
+initAnalytics();
 bindTabs();
 bindForms();
 bindRules();
