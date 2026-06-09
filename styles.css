@@ -228,6 +228,7 @@ form button,
 .alert-item,
 .stock-card,
 .review-card,
+.info-card,
 .rules-panel,
 .input-panel,
 .product-panel {
@@ -377,6 +378,10 @@ form button {
   min-height: 220px;
 }
 
+.info-card {
+  margin-top: 12px;
+}
+
 .footer-bar {
   display: flex;
   align-items: center;
@@ -397,6 +402,22 @@ form button {
   padding-left: 18px;
   color: var(--muted);
   line-height: 1.7;
+}
+
+.info-card h4 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.info-card p {
+  color: var(--muted);
+  line-height: 1.7;
+  font-size: 14px;
+}
+
+.info-card p + h4,
+.info-card p + p {
+  margin-top: 10px;
 }
 
 .tabbar {
