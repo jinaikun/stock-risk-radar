@@ -340,7 +340,7 @@ async function route(req, res) {
     }
     const store = updateStore((current) => {
       ensureStoreLists(current);
-      current.positions.unshift({
+      const nextItem = {
         id: makeId("pos"),
         code: quote.code,
         name: quote.name,
@@ -350,7 +350,14 @@ async function route(req, res) {
         atr: quote.atr,
         peak: Number(Math.max(quote.price, Number(body.cost || 0) * 1.03).toFixed(2)),
         change: quote.change
-      });
+      };
+      const digits = normalizeDigits(quote.code);
+      const existing = current.positions.find((item) => normalizeDigits(item.code) === digits);
+      if (existing) {
+        Object.assign(existing, nextItem, { id: existing.id });
+      } else {
+        current.positions.unshift(nextItem);
+      }
       return recordEvent(current, "position_add_success", { code: quote.code });
     });
     json(res, 201, { positions: await hydratePositions(store.positions) });
@@ -377,14 +384,21 @@ async function route(req, res) {
     }
     const store = updateStore((current) => {
       ensureStoreLists(current);
-      current.watchlist.unshift({
+      const nextItem = {
         id: makeId("watch"),
         code: quote.code,
         name: quote.name,
         price: quote.price,
         trigger: Number(body.trigger || 0),
         change: quote.change
-      });
+      };
+      const digits = normalizeDigits(quote.code);
+      const existing = current.watchlist.find((item) => normalizeDigits(item.code) === digits);
+      if (existing) {
+        Object.assign(existing, nextItem, { id: existing.id });
+      } else {
+        current.watchlist.unshift(nextItem);
+      }
       return recordEvent(current, "watch_add_success", { code: quote.code });
     });
     json(res, 201, { watchlist: await hydrateWatchlist(store.watchlist) });
