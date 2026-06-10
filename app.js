@@ -1,5 +1,5 @@
 const storageKey = "jnk-stock-discipline-assistant";
-const appVersion = "v1.3.5";
+const appVersion = "v1.3.6";
 const defaultApiBase =
   window.location.protocol === "file:"
     ? "http://localhost:8787"
@@ -102,23 +102,27 @@ const state = loadState();
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
 
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
 function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem(storageKey));
-    if (!saved) return structuredClone(defaultState);
+    if (!saved) return clone(defaultState);
     const loaded = {
-      ...structuredClone(defaultState),
+      ...clone(defaultState),
       ...saved,
       market: {
-        ...structuredClone(defaultState.market),
+        ...clone(defaultState.market),
         ...(saved.market || {})
       },
       rules: {
-        ...structuredClone(defaultState.rules),
+        ...clone(defaultState.rules),
         ...(saved.rules || {})
       },
-      positions: Array.isArray(saved.positions) ? dedupeStocks(saved.positions, "pos") : structuredClone(defaultState.positions),
-      watchlist: Array.isArray(saved.watchlist) ? dedupeStocks(saved.watchlist, "watch") : structuredClone(defaultState.watchlist),
+      positions: Array.isArray(saved.positions) ? dedupeStocks(saved.positions, "pos") : clone(defaultState.positions),
+      watchlist: Array.isArray(saved.watchlist) ? dedupeStocks(saved.watchlist, "watch") : clone(defaultState.watchlist),
       alerts: []
     };
     if (window.location.protocol !== "file:") {
@@ -126,7 +130,7 @@ function loadState() {
     }
     return loaded;
   } catch {
-    return structuredClone(defaultState);
+    return clone(defaultState);
   }
 }
 
@@ -482,7 +486,7 @@ async function loadBackendState() {
   const data = await apiRequest("/api/state");
   if (!data) {
     state.dataMode = "demo";
-    state.market = structuredClone(defaultState.market);
+    state.market = clone(defaultState.market);
     saveState();
     return;
   }
