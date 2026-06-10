@@ -1,5 +1,5 @@
 const storageKey = "jnk-stock-discipline-assistant";
-const appVersion = "v1.3.7";
+const appVersion = "v1.3.8";
 const defaultApiBase =
   window.location.protocol === "file:"
     ? "http://localhost:8787"
@@ -673,6 +673,8 @@ function bindForms() {
 
   $("#positionForm").addEventListener("submit", async (event) => {
     event.preventDefault();
+    const submitButton = event.currentTarget.querySelector('button[type="submit"]');
+    const originalText = submitButton ? submitButton.textContent : "";
     const data = new FormData(event.currentTarget);
     const code = normalizeDigits(data.get("code"));
     const cost = Number(data.get("cost"));
@@ -690,8 +692,17 @@ function bindForms() {
       return;
     }
 
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = "保存中...";
+    }
+    setQuotePreview("position", null, "正在保存持仓...");
     const ok = await addPosition({ code, cost, days });
     if (!ok) {
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = originalText;
+      }
       setQuotePreview("position", null, "当前未拿到有效行情，暂时无法保存持仓。");
       return;
     }
@@ -701,10 +712,16 @@ function bindForms() {
     setQuotePreview("position", null, "持仓已保存，若同一股票已存在则已更新原记录。");
     await loadBackendState();
     renderAll();
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = originalText;
+    }
   });
 
   $("#watchForm").addEventListener("submit", async (event) => {
     event.preventDefault();
+    const submitButton = event.currentTarget.querySelector('button[type="submit"]');
+    const originalText = submitButton ? submitButton.textContent : "";
     const data = new FormData(event.currentTarget);
     const code = normalizeDigits(data.get("code"));
     const trigger = Number(data.get("trigger"));
@@ -717,8 +734,17 @@ function bindForms() {
       return;
     }
 
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = "保存中...";
+    }
+    setQuotePreview("watch", null, "正在保存自选...");
     const ok = await addWatch({ code, trigger });
     if (!ok) {
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = originalText;
+      }
       setQuotePreview("watch", null, "当前未拿到有效行情，暂时无法加入自选。");
       return;
     }
@@ -728,6 +754,10 @@ function bindForms() {
     setQuotePreview("watch", null, "自选已保存，若同一股票已存在则已更新原记录。");
     await loadBackendState();
     renderAll();
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = originalText;
+    }
   });
 }
 
