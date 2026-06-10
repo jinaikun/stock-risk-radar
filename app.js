@@ -1,7 +1,7 @@
 const storageKey = "jnk-stock-discipline-assistant";
-const analyticsConfig = {
-  feedbackEmail: "jinaikun@gmail.com"
-};
+const appVersion = "v1.2.0";
+const defaultApiBase =
+  window.location.protocol === "file:" ? "http://localhost:8787" : "";
 
 const quoteBook = {
   "000001": { code: "000001.SZ", name: "平安银行", price: 11.24, atr: 0.31, change: -0.62 },
@@ -33,6 +33,9 @@ const quoteBook = {
 const defaultState = {
   dark: false,
   tokens: 186,
+  version: appVersion,
+  dataMode: "demo",
+  apiBase: defaultApiBase,
   rules: {
     hardStop: 6,
     atrStop: 2,
@@ -41,13 +44,38 @@ const defaultState = {
     maxDays: 12
   },
   positions: [
-    { code: "002436.SZ", name: "兴森科技", cost: 39.62, price: 36.82, days: 3, atr: 1.74, peak: 41.2, change: -1.08 },
-    { code: "002533.SZ", name: "金杯电工", cost: 12.43, price: 11.67, days: 4, atr: 0.42, peak: 12.72, change: -0.26 },
-    { code: "000617.SZ", name: "中油资本", cost: 7.12, price: 7.38, days: 8, atr: 0.18, peak: 7.92, change: 1.24 }
+    {
+      id: "demo-pos-002436",
+      code: "002436.SZ",
+      name: "兴森科技",
+      cost: 39.62,
+      price: 36.82,
+      days: 3,
+      atr: 1.74,
+      peak: 41.2,
+      change: -1.08
+    },
+    {
+      id: "demo-pos-002533",
+      code: "002533.SZ",
+      name: "金杯电工",
+      cost: 12.43,
+      price: 11.67,
+      days: 4,
+      atr: 0.42,
+      peak: 12.72,
+      change: -0.26
+    }
   ],
   watchlist: [
-    { code: "300750.SZ", name: "宁德时代", price: 212.8, trigger: 215, change: 1.16 },
-    { code: "600519.SH", name: "贵州茅台", price: 1478.2, trigger: 1500, change: 0.55 }
+    {
+      id: "demo-watch-300750",
+      code: "300750.SZ",
+      name: "宁德时代",
+      price: 212.8,
+      trigger: 215,
+      change: 1.16
+    }
   ],
   alerts: []
 };
@@ -77,6 +105,9 @@ function saveState() {
   const payload = {
     dark: state.dark,
     tokens: state.tokens,
+    version: state.version,
+    dataMode: state.dataMode,
+    apiBase: state.apiBase,
     rules: state.rules,
     positions: state.positions,
     watchlist: state.watchlist
@@ -114,14 +145,13 @@ function pseudoAtr(price) {
   return Number(Math.max(price * 0.035, 0.12).toFixed(2));
 }
 
-function lookupQuote(rawCode) {
+function localQuote(rawCode) {
   const digits = normalizeDigits(rawCode);
   if (digits.length !== 6) return null;
   if (quoteBook[digits]) return quoteBook[digits];
-  const normalized = normalizeCode(digits);
   const price = pseudoPrice(digits);
   return {
-    code: normalized,
+    code: normalizeCode(digits),
     name: `${digits} 模拟行情`,
     price,
     atr: pseudoAtr(price),
@@ -242,7 +272,9 @@ function renderDashboard() {
   $("#stableCount").textContent = counts.stable;
   $("#tokenBalance").textContent = state.tokens;
   $("#heroRiskText").textContent = counts.severe > 0 ? `${counts.severe} 个严重预警` : "暂无严重风险";
-
+  $("#reviewState").textContent = $("#reviewState").textContent || "待生成";
+  $("#versionText").textContent = state.version || appVersion;
+  $("#runtimeStatus").textContent = state.dataMode === "backend" ? "后端在线" : "演示模式";
   $("#alertFeed").innerHTML = state.alerts
     .map(
       (alert) => `
@@ -272,7 +304,7 @@ function renderPositions() {
             </div>
             <div class="stock-actions">
               <span class="pill">${statusLabel(result.level)}</span>
-              <button class="remove-button" type="button" data-kind="position" data-index="${index}" aria-label="移除持仓">×</button>
+              <button class="remove-button" type="button" data-kind="position" data-id="${stock.id || index}" aria-label="移除持仓">×</button>
             </div>
           </div>
         </article>
@@ -297,7 +329,7 @@ function renderWatchlist() {
             </div>
             <div class="stock-actions">
               <span class="pill">自选</span>
-              <button class="remove-button" type="button" data-kind="watch" data-index="${index}" aria-label="移除自选">×</button>
+              <button class="remove-button" type="button" data-kind="watch" data-id="${stock.id || index}" aria-label="移除自选">×</button>
             </div>
           </div>
         </article>
@@ -317,33 +349,6 @@ function renderRules() {
   $("#atrTakeLabel").textContent = `${fmt(state.rules.atrTake, 1)}x`;
   $("#trailStartLabel").textContent = `${fmt(state.rules.trailStart, 1)}%`;
   $("#maxDaysLabel").textContent = `${state.rules.maxDays}天`;
-}
-
-function makeReview() {
-  if (state.tokens < 12) {
-    $("#reviewCard").innerHTML = `<p class="muted">tokens 不足，无法生成 AI 复盘。</p>`;
-    trackEvent("review_blocked", "review_insufficient_tokens");
-    return;
-  }
-
-  state.tokens -= 12;
-  const severe = state.alerts.filter((item) => item.level === "severe");
-  const warning = state.alerts.filter((item) => item.level === "warning");
-  const watch = state.alerts.filter((item) => item.level === "watch");
-  $("#reviewState").textContent = "已生成";
-  $("#reviewCard").innerHTML = `
-    <h4>今日纪律复盘</h4>
-    <p>本次消耗 12 tokens。系统按用户自设规则完成持仓与自选监控。</p>
-    <ul>
-      <li>严重预警 ${severe.length} 个，优先确认是否触达硬纪律线。</li>
-      <li>警戒预警 ${warning.length} 个，收盘后复核 ATR 与移动止盈状态。</li>
-      <li>观察事件 ${watch.length} 个，明日开盘加入重点列表。</li>
-      <li>规则建议：若连续三天严重预警偏多，可降低单票仓位或缩短复盘周期。</li>
-    </ul>
-  `;
-  saveState();
-  trackEvent("review_generate", "generate_review");
-  renderDashboard();
 }
 
 function renderAll() {
@@ -373,6 +378,175 @@ function updateQuotePreview(kind, quote) {
   previewEl.textContent = `${quote.name} ${quote.code} | 当前价 ${fmt(quote.price)} | 日内 ${changeText}`;
 }
 
+function slugifyFeedback(text) {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\u4e00-\u9fa5]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 24) || "comment";
+}
+
+async function apiRequest(path, options = {}) {
+  if (!state.apiBase) return null;
+  try {
+    const response = await fetch(`${state.apiBase}${path}`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(options.headers || {})
+      },
+      ...options
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+async function loadBackendState() {
+  const data = await apiRequest("/api/state");
+  if (!data) {
+    state.dataMode = "demo";
+    saveState();
+    return;
+  }
+  state.version = data.version || appVersion;
+  state.rules = data.rules || state.rules;
+  state.positions = Array.isArray(data.positions) ? data.positions : state.positions;
+  state.watchlist = Array.isArray(data.watchlist) ? data.watchlist : state.watchlist;
+  state.dataMode = "backend";
+  saveState();
+}
+
+async function fetchQuote(rawCode) {
+  const digits = normalizeDigits(rawCode);
+  if (digits.length !== 6) return null;
+  const remote = await apiRequest(`/api/quotes?codes=${digits}`);
+  if (remote && Array.isArray(remote.quotes) && remote.quotes[0]) {
+    return remote.quotes[0];
+  }
+  return localQuote(digits);
+}
+
+async function addPosition(payload) {
+  const remote = await apiRequest("/api/positions", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+  if (remote && Array.isArray(remote.positions)) {
+    state.positions = remote.positions;
+    state.dataMode = "backend";
+    saveState();
+    return true;
+  }
+
+  const quote = await fetchQuote(payload.code);
+  if (!quote) return false;
+  state.positions.unshift({
+    id: `demo-pos-${Date.now()}`,
+    code: quote.code,
+    name: quote.name,
+    cost: Number(payload.cost),
+    price: quote.price,
+    days: Number(payload.days),
+    atr: quote.atr,
+    peak: Number(Math.max(quote.price, Number(payload.cost) * 1.03).toFixed(2)),
+    change: quote.change
+  });
+  saveState();
+  return true;
+}
+
+async function addWatch(payload) {
+  const remote = await apiRequest("/api/watchlist", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+  if (remote && Array.isArray(remote.watchlist)) {
+    state.watchlist = remote.watchlist;
+    state.dataMode = "backend";
+    saveState();
+    return true;
+  }
+
+  const quote = await fetchQuote(payload.code);
+  if (!quote) return false;
+  state.watchlist.unshift({
+    id: `demo-watch-${Date.now()}`,
+    code: quote.code,
+    name: quote.name,
+    price: quote.price,
+    trigger: Number(payload.trigger),
+    change: quote.change
+  });
+  saveState();
+  return true;
+}
+
+async function submitFeedback(message) {
+  const remote = await apiRequest("/api/feedback", {
+    method: "POST",
+    body: JSON.stringify({ message, source: "web" })
+  });
+  if (remote && remote.ok) {
+    state.dataMode = "backend";
+    saveState();
+    return true;
+  }
+  return false;
+}
+
+async function removeItem(kind, id) {
+  const path = kind === "position" ? `/api/positions/${id}` : `/api/watchlist/${id}`;
+  const remote = await apiRequest(path, { method: "DELETE" });
+  if (remote) {
+    if (kind === "position" && Array.isArray(remote.positions)) {
+      state.positions = remote.positions;
+    }
+    if (kind === "watch" && Array.isArray(remote.watchlist)) {
+      state.watchlist = remote.watchlist;
+    }
+    state.dataMode = "backend";
+    saveState();
+    return;
+  }
+
+  if (kind === "position") {
+    state.positions = state.positions.filter((item) => item.id !== id);
+  }
+  if (kind === "watch") {
+    state.watchlist = state.watchlist.filter((item) => item.id !== id);
+  }
+  saveState();
+}
+
+async function makeReview() {
+  if (state.tokens < 12) {
+    $("#reviewCard").innerHTML = `<p class="muted">tokens 不足，无法生成 AI 复盘。</p>`;
+    trackEvent("review_blocked", "review_insufficient_tokens");
+    return;
+  }
+
+  state.tokens -= 12;
+  const severe = state.alerts.filter((item) => item.level === "severe");
+  const warning = state.alerts.filter((item) => item.level === "warning");
+  const watch = state.alerts.filter((item) => item.level === "watch");
+  $("#reviewState").textContent = "已生成";
+  $("#reviewCard").innerHTML = `
+    <h4>今日纪律复盘</h4>
+    <p>本次消耗 12 tokens。系统按用户自设规则完成持仓与自选监控。</p>
+    <ul>
+      <li>严重预警 ${severe.length} 个，优先确认是否触达硬纪律线。</li>
+      <li>警戒预警 ${warning.length} 个，收盘后复核 ATR 与移动止盈状态。</li>
+      <li>观察事件 ${watch.length} 个，明日开盘加入重点列表。</li>
+      <li>规则建议：若连续三天严重预警偏多，可降低单票仓位或缩短复盘周期。</li>
+    </ul>
+  `;
+  saveState();
+  trackEvent("review_generate", "generate_review");
+  renderDashboard();
+}
+
 function bindTabs() {
   $$(".tab").forEach((tab) => {
     tab.addEventListener("click", () => {
@@ -385,58 +559,46 @@ function bindTabs() {
 }
 
 function bindForms() {
-  $("#positionCode").addEventListener("input", (event) => {
+  $("#positionCode").addEventListener("input", async (event) => {
     const digits = normalizeDigits(event.target.value);
     event.target.value = digits;
-    updateQuotePreview("position", lookupQuote(digits));
+    updateQuotePreview("position", await fetchQuote(digits));
   });
 
-  $("#watchCode").addEventListener("input", (event) => {
+  $("#watchCode").addEventListener("input", async (event) => {
     const digits = normalizeDigits(event.target.value);
     event.target.value = digits;
-    const quote = lookupQuote(digits);
+    const quote = await fetchQuote(digits);
     updateQuotePreview("watch", quote);
     if (quote) {
       $("#watchForm").elements.trigger.value = fmt(quote.price * 1.02);
     }
   });
 
-  $("#positionForm").addEventListener("submit", (event) => {
+  $("#positionForm").addEventListener("submit", async (event) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    const quote = lookupQuote(data.get("code"));
-    if (!quote) return;
-    state.positions.unshift({
-      code: quote.code,
-      name: quote.name,
-      cost: Number(data.get("cost")),
-      price: quote.price,
-      days: Number(data.get("days")),
-      atr: quote.atr,
-      peak: Number(Math.max(quote.price, Number(data.get("cost")) * 1.03).toFixed(2)),
-      change: quote.change
+    const ok = await addPosition({
+      code: data.get("code"),
+      cost: data.get("cost"),
+      days: data.get("days")
     });
-    saveState();
-    trackEvent("position_add", `add_position_${quote.code}`);
+    if (!ok) return;
+    trackEvent("position_add_success", `position_add_success_${normalizeCode(data.get("code"))}`);
     event.currentTarget.reset();
     updateQuotePreview("position", null);
     renderAll();
   });
 
-  $("#watchForm").addEventListener("submit", (event) => {
+  $("#watchForm").addEventListener("submit", async (event) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    const quote = lookupQuote(data.get("code"));
-    if (!quote) return;
-    state.watchlist.unshift({
-      code: quote.code,
-      name: quote.name,
-      price: quote.price,
-      trigger: Number(data.get("trigger")),
-      change: quote.change
+    const ok = await addWatch({
+      code: data.get("code"),
+      trigger: data.get("trigger")
     });
-    saveState();
-    trackEvent("watch_add", `add_watch_${quote.code}`);
+    if (!ok) return;
+    trackEvent("watch_add_success", `watch_add_success_${normalizeCode(data.get("code"))}`);
     event.currentTarget.reset();
     updateQuotePreview("watch", null);
     renderAll();
@@ -494,30 +656,52 @@ function bindActions() {
     renderAll();
   });
 
-  $("#feedbackLink").addEventListener("click", () => {
-    trackEvent("feedback_click", "open_feedback_email");
+  $("#feedbackText").addEventListener(
+    "focus",
+    () => {
+      trackEvent("feedback_click", "feedback_input_focus");
+    },
+    { once: true }
+  );
+
+  $("#feedbackForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const text = $("#feedbackText").value.trim();
+    if (!text) {
+      $("#feedbackStatus").textContent = "请先写一点真实感受再提交";
+      return;
+    }
+    const ok = await submitFeedback(text);
+    const slug = slugifyFeedback(text);
+    trackEvent(`feedback_submit/${slug}`, text.slice(0, 80));
+    $("#feedbackStatus").textContent = ok ? "反馈已提交到后端，谢谢你帮助这个助手变得更好" : "反馈已记录在试用事件中，谢谢你的建议";
+    $("#feedbackText").value = "";
   });
 
-  document.addEventListener("click", (event) => {
+  document.addEventListener("click", async (event) => {
     const button = event.target.closest(".remove-button");
     if (!button) return;
-    const index = Number(button.dataset.index);
+    const id = button.dataset.id;
     if (button.dataset.kind === "position") {
-      state.positions.splice(index, 1);
-      trackEvent("position_remove", `remove_position_${index}`);
+      await removeItem("position", id);
+      trackEvent("position_remove", `remove_position_${id}`);
     }
     if (button.dataset.kind === "watch") {
-      state.watchlist.splice(index, 1);
-      trackEvent("watch_remove", `remove_watch_${index}`);
+      await removeItem("watch", id);
+      trackEvent("watch_remove", `remove_watch_${id}`);
     }
-    saveState();
     renderAll();
   });
 }
 
-bindTabs();
-bindForms();
-bindRules();
-bindActions();
-renderAll();
-trackEvent("page_ready", "page_ready");
+async function init() {
+  bindTabs();
+  bindForms();
+  bindRules();
+  bindActions();
+  await loadBackendState();
+  renderAll();
+  trackEvent("page_ready", "page_ready");
+}
+
+init();

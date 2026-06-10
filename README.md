@@ -28,6 +28,35 @@
 
 直接用浏览器打开 `index.html` 即可。
 
+## 本地真实运行
+
+如果你想让持仓、自选、反馈真正落到后端，而不是只存在浏览器里：
+
+1. 打开 `scripts/start-backend.cmd`
+2. 保持后端窗口不要关闭
+3. 再打开前端页面
+4. 页面右上区域会显示 `后端在线`
+
+## 自动推送 GitHub
+
+本机已经安装了 `GitHub CLI`，但还需要先登录一次：
+
+```bash
+"C:\Program Files\GitHub CLI\gh.exe" auth login
+```
+
+登录完成后，可以用下面的脚本一键提交并推送：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\publish-github.ps1
+```
+
+如果想自定义提交信息：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\publish-github.ps1 -Message "your message"
+```
+
 ## 最简单免费上线
 
 这版最适合先部署到 `Vercel`，不用买服务器，不用先学后端。

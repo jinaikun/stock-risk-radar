@@ -43,6 +43,11 @@
               <strong id="reviewState">待生成</strong>
               <small>15:30</small>
             </div>
+            <div>
+              <span>运行状态</span>
+              <strong id="runtimeStatus">检查中</strong>
+              <small>API</small>
+            </div>
           </div>
 
           <div class="risk-hero">
@@ -195,15 +200,22 @@
             <h4>免责声明</h4>
             <p>本软件仅用于信息展示、纪律辅助和产品体验，不构成任何投资建议、收益承诺或证券买卖依据。</p>
             <p>页面内行情、预警、复盘和 AI 内容可能包含模拟数据或简化逻辑，用户应结合真实市场数据独立判断并自行承担风险。</p>
-            <h4>意见反馈</h4>
-            <p>欢迎反馈你在试用中的真实感受，例如哪里不好用、哪些预警更有价值、还缺什么功能。</p>
-            <a class="feedback-link" id="feedbackLink" href="mailto:jinaikun@gmail.com?subject=%E8%82%A1%E7%A5%A8%E4%BA%A4%E6%98%93%E7%BA%AA%E5%BE%8B%E5%8A%A9%E6%89%8B%E5%8F%8D%E9%A6%88&body=%E6%88%91%E7%9A%84%E4%BD%93%E9%AA%8C%E5%92%8C%E5%BB%BA%E8%AE%AE%EF%BC%9A%0A" target="_blank" rel="noreferrer">发送意见反馈</a>
+            <h4>欢迎试用，请反馈</h4>
+            <p>如果你觉得哪里不好用、哪里有价值，或者还缺少什么功能，可以直接在这里留言。</p>
+            <form class="feedback-form" id="feedbackForm">
+              <textarea id="feedbackText" maxlength="200" placeholder="例如：希望自选也支持自动建议触发价；复盘页想看到本周统计。"></textarea>
+              <div class="feedback-actions">
+                <button type="submit" id="feedbackSubmitBtn">提交反馈</button>
+                <span class="feedback-status" id="feedbackStatus">提交后会记录为试用反馈事件</span>
+              </div>
+            </form>
           </article>
         </section>
       </main>
 
       <footer class="footer-bar">
         <span>模拟行情演示版</span>
+        <span id="versionText">v1.1.0</span>
         <span>© JNK</span>
       </footer>
 
