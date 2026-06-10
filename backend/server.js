@@ -223,6 +223,9 @@ function makeId(prefix) {
 }
 
 function recordEvent(store, name, payload) {
+  if (!Array.isArray(store.events)) {
+    store.events = [];
+  }
   store.events.unshift({
     id: makeId("event"),
     name,
@@ -230,6 +233,14 @@ function recordEvent(store, name, payload) {
     createdAt: new Date().toISOString()
   });
   store.events = store.events.slice(0, 300);
+  return store;
+}
+
+function ensureStoreLists(store) {
+  if (!Array.isArray(store.positions)) store.positions = [];
+  if (!Array.isArray(store.watchlist)) store.watchlist = [];
+  if (!Array.isArray(store.feedback)) store.feedback = [];
+  if (!Array.isArray(store.events)) store.events = [];
   return store;
 }
 
@@ -328,6 +339,7 @@ async function route(req, res) {
       return;
     }
     const store = updateStore((current) => {
+      ensureStoreLists(current);
       current.positions.unshift({
         id: makeId("pos"),
         code: quote.code,
@@ -348,6 +360,7 @@ async function route(req, res) {
   if (req.method === "DELETE" && url.pathname.startsWith("/api/positions/")) {
     const id = url.pathname.split("/").pop();
     const store = updateStore((current) => {
+      ensureStoreLists(current);
       current.positions = current.positions.filter((item) => item.id !== id);
       return recordEvent(current, "position_remove", { id });
     });
@@ -363,6 +376,7 @@ async function route(req, res) {
       return;
     }
     const store = updateStore((current) => {
+      ensureStoreLists(current);
       current.watchlist.unshift({
         id: makeId("watch"),
         code: quote.code,
@@ -380,6 +394,7 @@ async function route(req, res) {
   if (req.method === "DELETE" && url.pathname.startsWith("/api/watchlist/")) {
     const id = url.pathname.split("/").pop();
     const store = updateStore((current) => {
+      ensureStoreLists(current);
       current.watchlist = current.watchlist.filter((item) => item.id !== id);
       return recordEvent(current, "watch_remove", { id });
     });
@@ -395,6 +410,7 @@ async function route(req, res) {
       return;
     }
     const store = updateStore((current) => {
+      ensureStoreLists(current);
       current.feedback.unshift({
         id: makeId("feedback"),
         message,

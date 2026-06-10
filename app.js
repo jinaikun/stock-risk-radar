@@ -1,5 +1,5 @@
 const storageKey = "jnk-stock-discipline-assistant";
-const appVersion = "v1.3.3";
+const appVersion = "v1.3.4";
 const defaultApiBase =
   window.location.protocol === "file:"
     ? "http://localhost:8787"
@@ -672,7 +672,18 @@ function bindForms() {
     const code = normalizeDigits(data.get("code"));
     const cost = Number(data.get("cost"));
     const days = Number(data.get("days"));
-    if (code.length !== 6 || !(cost > 0) || !(days >= 0)) return;
+    if (code.length !== 6) {
+      setQuotePreview("position", null, "请先输入完整的 6 位股票代码。");
+      return;
+    }
+    if (!(cost > 0)) {
+      setQuotePreview("position", null, "请填写成本价，保存持仓需要股票代码、成本价和持仓天数。");
+      return;
+    }
+    if (!(days >= 0)) {
+      setQuotePreview("position", null, "请填写持仓天数，可以填 0。");
+      return;
+    }
 
     const ok = await addPosition({ code, cost, days });
     if (!ok) {
@@ -690,7 +701,14 @@ function bindForms() {
     const data = new FormData(event.currentTarget);
     const code = normalizeDigits(data.get("code"));
     const trigger = Number(data.get("trigger"));
-    if (code.length !== 6 || !(trigger > 0)) return;
+    if (code.length !== 6) {
+      setQuotePreview("watch", null, "请先输入完整的 6 位股票代码。");
+      return;
+    }
+    if (!(trigger > 0)) {
+      setQuotePreview("watch", null, "请填写触发价，保存自选需要股票代码和触发价。");
+      return;
+    }
 
     const ok = await addWatch({ code, trigger });
     if (!ok) {
