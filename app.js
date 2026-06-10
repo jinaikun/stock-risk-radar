@@ -1,7 +1,9 @@
 const storageKey = "jnk-stock-discipline-assistant";
 const appVersion = "v1.2.0";
 const defaultApiBase =
-  window.location.protocol === "file:" ? "http://localhost:8787" : "";
+  window.location.protocol === "file:"
+    ? "http://localhost:8787"
+    : window.location.origin;
 
 const quoteBook = {
   "000001": { code: "000001.SZ", name: "平安银行", price: 11.24, atr: 0.31, change: -0.62 },
