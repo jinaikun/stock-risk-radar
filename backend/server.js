@@ -120,11 +120,13 @@ function fallbackQuote(rawCode) {
       source: "fallback"
     };
   }
+  const seed = digits.split("").reduce((sum, char) => sum + Number(char), 0);
+  const price = Number((8 + (seed % 42) + (seed % 10) / 10).toFixed(2));
   return {
     code: normalizeCode(digits),
     name: "待行情源返回名称",
-    price: null,
-    atr: 0.6,
+    price,
+    atr: Number(Math.max(price * 0.035, 0.12).toFixed(2)),
     change: 0,
     source: "fallback"
   };
