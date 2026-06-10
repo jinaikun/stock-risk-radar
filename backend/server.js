@@ -209,6 +209,55 @@ async function fetchSinaQuote(rawCode) {
   };
 }
 
+async function fetchSinaIndex(symbol, code, name) {
+  const response = await fetch(`${SINA_QUOTE_URL}${symbol}`, {
+    headers: {
+      Referer: "https://finance.sina.com.cn",
+      "User-Agent": "Mozilla/5.0 stock-discipline-assistant/1.0"
+    }
+  });
+  if (!response.ok) throw new Error(`Sina index HTTP ${response.status}`);
+  const text = decodeSinaText(await response.arrayBuffer());
+  const match = text.match(/="([^"]*)"/);
+  if (!match || !match[1]) throw new Error("Sina index payload missing");
+  const parts = match[1].split(",");
+  const current = Number(parts[1]);
+  const change = Number(parts[3]);
+  if (!(current > 0)) throw new Error("Sina index invalid");
+  return {
+    code,
+    name: name || parts[0] || code,
+    price: current,
+    change: Number(change.toFixed(2)),
+    source: "sina"
+  };
+}
+
+async function hs300Snapshot() {
+  try {
+    const quote = await fetchEastmoneyQuoteBySecid("1.000300", "000300.SH");
+    return {
+      code: "000300.SH",
+      name: "沪深300",
+      price: quote.price,
+      change: quote.change,
+      source: quote.source
+    };
+  } catch {
+    try {
+      return await fetchSinaIndex("sh000300", "000300.SH", "沪深300");
+    } catch {
+      return {
+        code: "000300.SH",
+        name: "沪深300",
+        price: 3512.63,
+        change: 0.18,
+        source: "fallback"
+      };
+    }
+  }
+}
+
 async function quoteForCode(rawCode) {
   const digits = normalizeDigits(rawCode);
   if (digits.length !== 6) return null;
@@ -224,28 +273,9 @@ async function quoteForCode(rawCode) {
 }
 
 async function marketSnapshot() {
-  try {
-    const quote = await fetchEastmoneyQuoteBySecid("1.000300", "000300.SH");
-    return {
-      hs300: {
-        code: "000300.SH",
-        name: "沪深300",
-        price: quote.price,
-        change: quote.change,
-        source: quote.source
-      }
-    };
-  } catch {
-    return {
-      hs300: {
-        code: "000300.SH",
-        name: "沪深300",
-        price: 3512.63,
-        change: 0.18,
-        source: "fallback"
-      }
-    };
-  }
+  return {
+    hs300: await hs300Snapshot()
+  };
 }
 
 function readBody(req) {
