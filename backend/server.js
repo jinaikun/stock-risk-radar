@@ -133,7 +133,7 @@ function fallbackQuote(rawCode) {
 async function fetchEastmoneyQuoteBySecid(secid, fallbackCode) {
   const params = new URLSearchParams({
     secid,
-    fields: "f43,f57,f58,f169"
+    fields: "f43,f57,f58,f169,f170"
   });
   const response = await fetch(`${EASTMONEY_QUOTE_URL}?${params.toString()}`, {
     headers: {
@@ -154,7 +154,7 @@ async function fetchEastmoneyQuoteBySecid(secid, fallbackCode) {
     name: data.f58 || "待行情源返回名称",
     price,
     atr: Number(Math.max(price * 0.035, 0.12).toFixed(2)),
-    change: Number((Number(data.f169 || 0) / 100).toFixed(2)),
+    change: Number((Number(data.f170 || 0) / 100).toFixed(2)),
     source: "eastmoney"
   };
 }

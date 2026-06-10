@@ -1,5 +1,5 @@
 const storageKey = "jnk-stock-discipline-assistant";
-const appVersion = "v1.3.1";
+const appVersion = "v1.3.2";
 const defaultApiBase =
   window.location.protocol === "file:"
     ? "http://localhost:8787"
@@ -742,7 +742,7 @@ function bindActions() {
   $("#buyTokenBtn").addEventListener("click", () => {
     state.tokens += 100;
     saveState();
-    trackEvent("token_buy", "buy_token_100");
+    trackEvent("token_buy", "buy_token_4_99");
     renderDashboard();
   });
 
