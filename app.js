@@ -1,5 +1,5 @@
 const storageKey = "jnk-stock-discipline-assistant";
-const appVersion = "v1.3.6";
+const appVersion = "v1.3.7";
 const defaultApiBase =
   window.location.protocol === "file:"
     ? "http://localhost:8787"
@@ -182,20 +182,21 @@ function isFallbackName(name) {
 }
 
 function normalizeStockItem(item, kind) {
-  const digits = normalizeDigits(item?.code);
+  const source = item || {};
+  const digits = normalizeDigits(source.code);
   const known = quoteBook[digits];
   const normalized = {
-    ...item,
-    id: item?.id || `${kind}-${digits || Date.now()}`,
-    code: normalizeCode(digits) || item?.code,
-    name: legacyNameMap[item?.name] || item?.name || known?.name || "待行情源返回名称"
+    ...source,
+    id: source.id || `${kind}-${digits || Date.now()}`,
+    code: normalizeCode(digits) || source.code,
+    name: legacyNameMap[source.name] || source.name || (known && known.name) || "待行情源返回名称"
   };
 
   if (known && isFallbackName(normalized.name)) {
     normalized.name = known.name;
   }
 
-  if (known && (!Number.isFinite(Number(normalized.price)) || Number(normalized.price) <= 0 || /Simulated Quote/.test(String(item?.name)))) {
+  if (known && (!Number.isFinite(Number(normalized.price)) || Number(normalized.price) <= 0 || /Simulated Quote/.test(String(source.name)))) {
     normalized.price = known.price;
     normalized.atr = known.atr;
     normalized.change = known.change;
@@ -339,7 +340,7 @@ function buildAlerts() {
 }
 
 function renderMarket() {
-  const hs300 = state.market?.hs300 || defaultState.market.hs300;
+  const hs300 = state.market && state.market.hs300 ? state.market.hs300 : defaultState.market.hs300;
   $("#hs300Price").textContent = fmt(hs300.price);
   const changeEl = $("#hs300Change");
   changeEl.textContent = pctText(hs300.change);
@@ -522,7 +523,7 @@ async function refreshQuotePreview(kind, rawCode) {
   setQuotePreview(kind, null, "正在读取行情与股票名称...");
   const quote = await fetchQuote(digits);
   setQuotePreview(kind, quote, null);
-  if (kind === "watch" && quote?.price != null) {
+  if (kind === "watch" && quote && quote.price != null) {
     $("#watchForm").elements.trigger.value = fmt(quote.price * 1.02);
   }
 }
