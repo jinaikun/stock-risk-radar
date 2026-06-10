@@ -90,7 +90,7 @@ function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem(storageKey));
     if (!saved) return structuredClone(defaultState);
-    return {
+    const loaded = {
       ...structuredClone(defaultState),
       ...saved,
       rules: { ...structuredClone(defaultState.rules), ...(saved.rules || {}) },
@@ -98,6 +98,10 @@ function loadState() {
       watchlist: Array.isArray(saved.watchlist) ? saved.watchlist : structuredClone(defaultState.watchlist),
       alerts: []
     };
+    if (window.location.protocol !== "file:") {
+      loaded.apiBase = window.location.origin;
+    }
+    return loaded;
   } catch {
     return structuredClone(defaultState);
   }
