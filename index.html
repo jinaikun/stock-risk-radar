@@ -30,8 +30,8 @@
           <div class="market-strip">
             <div>
               <span>沪深300</span>
-              <strong>4,804.18</strong>
-              <small class="down">-0.42%</small>
+              <strong id="hs300Price">0.00</strong>
+              <small id="hs300Change">0.00%</small>
             </div>
             <div>
               <span>预警余额</span>
@@ -41,7 +41,7 @@
             <div>
               <span>今日复盘</span>
               <strong id="reviewState">待生成</strong>
-              <small>15:30</small>
+              <small id="reviewHint">当前为演示数据</small>
             </div>
             <div>
               <span>运行状态</span>
@@ -109,7 +109,7 @@
               持仓天数
               <input required name="days" inputmode="numeric" placeholder="3" />
             </label>
-            <div class="quote-preview" id="positionQuotePreview">输入 6 位股票代码后自动识别名称和当前价</div>
+            <div class="quote-preview" id="positionQuotePreview">输入 6 位股票代码后，自动带出股票名称和当前价。</div>
             <button type="submit">保存持仓</button>
           </form>
           <div class="stock-list" id="positionList"></div>
@@ -136,7 +136,7 @@
               触发价
               <input required name="trigger" inputmode="decimal" placeholder="215.00" />
             </label>
-            <div class="quote-preview" id="watchQuotePreview">输入 6 位股票代码后自动识别名称和当前价</div>
+            <div class="quote-preview" id="watchQuotePreview">输入 6 位股票代码后，自动带出股票名称和当前价。</div>
             <button type="submit">加入自选</button>
           </form>
           <div class="stock-list" id="watchList"></div>
@@ -179,7 +179,7 @@
             <div>
               <p class="eyebrow">Token Engine</p>
               <h3>AI 复盘按次消耗</h3>
-              <p>基础预警免费，AI 解释、纪律评分、明日观察清单消耗 tokens。</p>
+              <p>基础预警免费，AI 解释、纪律评分、次日观察清单消耗 tokens。</p>
             </div>
             <button id="buyTokenBtn">充值 100</button>
           </div>
@@ -196,17 +196,17 @@
           <article class="info-card">
             <h4>软件说明</h4>
             <p>股票交易纪律助手是一款用于持仓风控、自选监控和收盘复盘的个人辅助工具，帮助用户记录并执行自己的交易纪律。</p>
-            <p>当前版本提供持仓录入、自选观察、纪律规则设置、预警演示和复盘展示，适合试用和产品验证。</p>
+            <p>当前版本提供持仓录入、自选观察、纪律规则设置、预警展示和复盘生成，适合试用和产品验证。</p>
             <h4>免责声明</h4>
             <p>本软件仅用于信息展示、纪律辅助和产品体验，不构成任何投资建议、收益承诺或证券买卖依据。</p>
-            <p>页面内行情、预警、复盘和 AI 内容可能包含模拟数据或简化逻辑，用户应结合真实市场数据独立判断并自行承担风险。</p>
+            <p>页面内行情、预警、复盘和 AI 内容可能存在延迟、简化逻辑或演示数据，使用者应结合真实市场信息独立判断并自行承担风险。</p>
             <h4>欢迎试用，请反馈</h4>
-            <p>如果你觉得哪里不好用、哪里有价值，或者还缺少什么功能，可以直接在这里留言。</p>
+            <p>如果你觉得哪里不好用、哪里有价值，或者还缺什么功能，可以直接在这里留言。</p>
             <form class="feedback-form" id="feedbackForm">
               <textarea id="feedbackText" maxlength="200" placeholder="例如：希望自选也支持自动建议触发价；复盘页想看到本周统计。"></textarea>
               <div class="feedback-actions">
                 <button type="submit" id="feedbackSubmitBtn">提交反馈</button>
-                <span class="feedback-status" id="feedbackStatus">提交后会记录为试用反馈事件</span>
+                <span class="feedback-status" id="feedbackStatus">提交后会记录为试用反馈事件。</span>
               </div>
             </form>
           </article>
@@ -214,8 +214,8 @@
       </main>
 
       <footer class="footer-bar">
-        <span>模拟行情演示版</span>
-        <span id="versionText">v1.1.0</span>
+        <span>行情与交互演示版</span>
+        <span id="versionText">v1.3.1</span>
         <span>© JNK</span>
       </footer>
 
