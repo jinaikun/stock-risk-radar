@@ -1,5 +1,5 @@
 const storageKey = "jnk-stock-discipline-assistant";
-const appVersion = "v1.3.4";
+const appVersion = "v1.3.5";
 const defaultApiBase =
   window.location.protocol === "file:"
     ? "http://localhost:8787"
@@ -692,7 +692,9 @@ function bindForms() {
     }
     trackEvent("position_add_success", `position_add_success_${normalizeCode(code)}`);
     event.currentTarget.reset();
-    setQuotePreview("position", null);
+    renderAll();
+    setQuotePreview("position", null, "持仓已保存，若同一股票已存在则已更新原记录。");
+    await loadBackendState();
     renderAll();
   });
 
@@ -717,7 +719,9 @@ function bindForms() {
     }
     trackEvent("watch_add_success", `watch_add_success_${normalizeCode(code)}`);
     event.currentTarget.reset();
-    setQuotePreview("watch", null);
+    renderAll();
+    setQuotePreview("watch", null, "自选已保存，若同一股票已存在则已更新原记录。");
+    await loadBackendState();
     renderAll();
   });
 }
