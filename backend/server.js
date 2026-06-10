@@ -4,6 +4,7 @@ const { readStore, updateStore } = require("./lib/store");
 
 const PORT = process.env.PORT || 8787;
 const EASTMONEY_QUOTE_URL = "https://push2.eastmoney.com/api/qt/stock/get";
+const SINA_QUOTE_URL = "https://hq.sinajs.cn/list=";
 
 const quoteBook = {
   "000001": { code: "000001.SZ", name: "平安银行", price: 11.24, atr: 0.31, change: -0.62 },
@@ -132,6 +133,13 @@ function fallbackQuote(rawCode) {
   };
 }
 
+function toSinaSymbol(rawCode) {
+  const digits = normalizeDigits(rawCode);
+  if (digits.length !== 6) return null;
+  const prefix = digits.startsWith("6") || digits.startsWith("688") ? "sh" : "sz";
+  return `${prefix}${digits}`;
+}
+
 async function fetchEastmoneyQuoteBySecid(secid, fallbackCode) {
   const params = new URLSearchParams({
     secid,
@@ -161,13 +169,57 @@ async function fetchEastmoneyQuoteBySecid(secid, fallbackCode) {
   };
 }
 
+function decodeSinaText(buffer) {
+  try {
+    return new TextDecoder("gb18030").decode(buffer);
+  } catch {
+    return new TextDecoder("gbk").decode(buffer);
+  }
+}
+
+async function fetchSinaQuote(rawCode) {
+  const digits = normalizeDigits(rawCode);
+  const symbol = toSinaSymbol(digits);
+  if (!symbol) throw new Error("Invalid Sina symbol");
+  const response = await fetch(`${SINA_QUOTE_URL}${symbol}`, {
+    headers: {
+      Referer: "https://finance.sina.com.cn",
+      "User-Agent": "Mozilla/5.0 stock-discipline-assistant/1.0"
+    }
+  });
+  if (!response.ok) throw new Error(`Sina HTTP ${response.status}`);
+  const text = decodeSinaText(await response.arrayBuffer());
+  const match = text.match(/="([^"]*)"/);
+  if (!match || !match[1]) throw new Error("Sina payload missing");
+  const parts = match[1].split(",");
+  const name = parts[0];
+  const open = Number(parts[1]);
+  const prevClose = Number(parts[2]);
+  const current = Number(parts[3]);
+  if (!name || !(current > 0)) throw new Error("Sina quote invalid");
+  const change = prevClose > 0 ? Number((((current - prevClose) / prevClose) * 100).toFixed(2)) : 0;
+  return {
+    code: normalizeCode(digits),
+    name,
+    price: current,
+    atr: Number(Math.max(current * 0.035, 0.12).toFixed(2)),
+    change,
+    open,
+    source: "sina"
+  };
+}
+
 async function quoteForCode(rawCode) {
   const digits = normalizeDigits(rawCode);
   if (digits.length !== 6) return null;
   try {
     return await fetchEastmoneyQuoteBySecid(toSecid(digits), normalizeCode(digits));
-  } catch {
-    return fallbackQuote(digits);
+  } catch (eastmoneyError) {
+    try {
+      return await fetchSinaQuote(digits);
+    } catch {
+      return fallbackQuote(digits);
+    }
   }
 }
 
