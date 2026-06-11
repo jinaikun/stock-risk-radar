@@ -26,12 +26,25 @@
       </header>
 
       <main>
+        <section class="access-panel" aria-label="访问码">
+          <form id="accessForm">
+            <label>
+              访问码
+              <input name="userCode" id="accessCode" maxlength="24" placeholder="jnk001" autocomplete="off" />
+            </label>
+            <button type="submit">进入</button>
+            <button type="button" id="switchUserBtn">切换</button>
+          </form>
+          <span id="accessStatus">输入访问码后只看自己的持仓和自选。</span>
+        </section>
+
         <section class="view active" id="view-dashboard" aria-label="总览">
           <div class="market-strip">
             <div>
               <span>沪深300</span>
               <strong id="hs300Price">0.00</strong>
               <small id="hs300Change">0.00%</small>
+              <small id="hs300Source">行情源</small>
             </div>
             <div>
               <span>预警余额</span>
@@ -215,7 +228,7 @@
 
       <footer class="footer-bar">
         <span>行情与交互演示版</span>
-        <span id="versionText">v1.3.9</span>
+        <span id="versionText">v1.4.0</span>
         <span>© JNK</span>
       </footer>
 

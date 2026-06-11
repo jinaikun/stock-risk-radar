@@ -115,6 +115,44 @@ h3 {
   display: block;
 }
 
+.access-panel {
+  margin-bottom: 14px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(31, 41, 55, 0.06);
+}
+
+.access-panel form {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.access-panel button {
+  min-height: 42px;
+  border-radius: 8px;
+  padding: 0 12px;
+  background: var(--brand);
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.access-panel button[type="button"] {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.access-panel span {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .market-strip {
   margin-bottom: 14px;
   padding: 12px;
@@ -138,6 +176,11 @@ h3 {
   display: block;
   margin-top: 4px;
   font-size: 16px;
+}
+
+.market-strip small {
+  display: block;
+  margin-top: 2px;
 }
 
 .down {
@@ -521,5 +564,9 @@ form button {
   .market-strip {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .access-panel form {
+    grid-template-columns: 1fr;
   }
 }

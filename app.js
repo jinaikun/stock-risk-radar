@@ -1,5 +1,6 @@
 const storageKey = "jnk-stock-discipline-assistant";
-const appVersion = "v1.3.9";
+const userCodeKey = "jnk-stock-discipline-user-code";
+const appVersion = "v1.4.0";
 const defaultApiBase =
   window.location.protocol === "file:"
     ? "http://localhost:8787"
@@ -51,6 +52,7 @@ const defaultState = {
   version: appVersion,
   dataMode: "demo",
   apiBase: defaultApiBase,
+  userCode: "",
   market: {
     hs300: { code: "000300.SH", name: "沪深300", price: 3512.63, change: 0.18, source: "fallback" }
   },
@@ -143,6 +145,7 @@ function saveState() {
       version: state.version,
       dataMode: state.dataMode,
       apiBase: state.apiBase,
+      userCode: state.userCode,
       market: state.market,
       rules: state.rules,
       positions: state.positions,
@@ -251,6 +254,26 @@ function fallbackQuote(rawCode) {
   };
 }
 
+function sanitizeUserCode(rawCode) {
+  return String(rawCode || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, "")
+    .slice(0, 24);
+}
+
+function loadUserCode() {
+  return sanitizeUserCode(localStorage.getItem(userCodeKey) || state.userCode || "");
+}
+
+function saveUserCode(code) {
+  const nextCode = sanitizeUserCode(code);
+  state.userCode = nextCode;
+  localStorage.setItem(userCodeKey, nextCode);
+  saveState();
+  return nextCode;
+}
+
 function classifyPosition(stock) {
   const drawdown = ((stock.price - stock.cost) / stock.cost) * 100;
   const hardLine = stock.cost * (1 - state.rules.hardStop / 100);
@@ -349,6 +372,7 @@ function renderMarket() {
 
 function renderDashboard() {
   const counts = { severe: 0, warning: 0, watch: 0, stable: 0 };
+  const hs300 = state.market && state.market.hs300 ? state.market.hs300 : defaultState.market.hs300;
   state.alerts.forEach((alert) => {
     counts[alert.level] += 1;
   });
@@ -362,7 +386,9 @@ function renderDashboard() {
   $("#heroRiskText").textContent = counts.severe > 0 ? `${counts.severe} 个严重预警待处理` : "暂无严重风险";
   $("#versionText").textContent = state.version || appVersion;
   $("#runtimeStatus").textContent = state.dataMode === "backend" ? "后端在线" : "演示模式";
-  $("#reviewHint").textContent = state.dataMode === "backend" ? "已连接实时接口" : "当前为演示数据";
+  $("#reviewHint").textContent = state.userCode ? `访问码 ${state.userCode}` : "请先输入访问码";
+  const marketSource = hs300 && hs300.source ? hs300.source : "unknown";
+  $("#hs300Source").textContent = marketSource === "fallback" ? "备用行情" : `来源 ${marketSource}`;
   $("#alertFeed").innerHTML = state.alerts
     .map(
       (alert) => `
@@ -468,10 +494,12 @@ function setQuotePreview(kind, quote, message) {
 
 async function apiRequest(path, options = {}) {
   if (!state.apiBase) return null;
+  const userCode = loadUserCode();
   try {
     const response = await fetch(`${state.apiBase}${path}`, {
       headers: {
         "Content-Type": "application/json",
+        ...(userCode ? { "X-User-Code": userCode } : {}),
         ...(options.headers || {})
       },
       ...options
@@ -484,6 +512,14 @@ async function apiRequest(path, options = {}) {
 }
 
 async function loadBackendState() {
+  state.userCode = loadUserCode();
+  if (!state.userCode) {
+    state.dataMode = "demo";
+    state.positions = [];
+    state.watchlist = [];
+    saveState();
+    return;
+  }
   const data = await apiRequest("/api/state");
   if (!data) {
     state.dataMode = "demo";
@@ -492,6 +528,7 @@ async function loadBackendState() {
     return;
   }
   state.version = appVersion;
+  state.userCode = data.userCode || state.userCode;
   state.rules = data.rules || state.rules;
   state.positions = Array.isArray(data.positions) ? dedupeStocks(data.positions, "pos") : dedupeStocks(state.positions, "pos");
   state.watchlist = Array.isArray(data.watchlist) ? dedupeStocks(data.watchlist, "watch") : dedupeStocks(state.watchlist, "watch");
@@ -659,6 +696,37 @@ function bindTabs() {
 }
 
 function bindForms() {
+  $("#accessForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    const nextCode = saveUserCode(data.get("userCode"));
+    if (!nextCode) {
+      $("#accessStatus").textContent = "请输入访问码，例如 jnk001。";
+      return;
+    }
+    $("#accessStatus").textContent = `当前访问码：${nextCode}`;
+    state.positions = [];
+    state.watchlist = [];
+    await loadBackendState();
+    renderAll();
+  });
+
+  $("#switchUserBtn").addEventListener("click", () => {
+    localStorage.removeItem(userCodeKey);
+    state.userCode = "";
+    state.positions = [];
+    state.watchlist = [];
+    saveState();
+    renderAll();
+    $("#accessCode").focus();
+  });
+
+  const currentCode = loadUserCode();
+  if (currentCode) {
+    $("#accessCode").value = currentCode;
+    $("#accessStatus").textContent = `当前访问码：${currentCode}`;
+  }
+
   $("#positionCode").addEventListener("input", async (event) => {
     const digits = normalizeDigits(event.target.value);
     event.target.value = digits;
@@ -679,6 +747,11 @@ function bindForms() {
     const code = normalizeDigits(data.get("code"));
     const cost = Number(data.get("cost"));
     const days = Number(data.get("days"));
+    if (!loadUserCode()) {
+      setQuotePreview("position", null, "请先输入访问码，再保存自己的持仓。");
+      $("#accessCode").focus();
+      return;
+    }
     if (code.length !== 6) {
       setQuotePreview("position", null, "请先输入完整的 6 位股票代码。");
       return;
@@ -723,6 +796,11 @@ function bindForms() {
     const data = new FormData(event.currentTarget);
     const code = normalizeDigits(data.get("code"));
     const trigger = Number(data.get("trigger"));
+    if (!loadUserCode()) {
+      setQuotePreview("watch", null, "请先输入访问码，再保存自己的自选。");
+      $("#accessCode").focus();
+      return;
+    }
     if (code.length !== 6) {
       setQuotePreview("watch", null, "请先输入完整的 6 位股票代码。");
       return;
