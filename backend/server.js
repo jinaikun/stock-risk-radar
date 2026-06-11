@@ -1,6 +1,6 @@
 const http = require("http");
 const { URL } = require("url");
-const { readStore, updateStore } = require("./lib/store");
+const { readUserStore, updateUserStore, sanitizeUserCode } = require("./lib/store");
 
 const PORT = process.env.PORT || 8787;
 const EASTMONEY_QUOTE_URL = "https://push2.eastmoney.com/api/qt/stock/get";
@@ -361,6 +361,7 @@ async function hydrateWatchlist(items) {
 
 async function route(req, res) {
   const url = new URL(req.url, `http://${req.headers.host}`);
+  const userCode = sanitizeUserCode(req.headers["x-user-code"] || url.searchParams.get("user"));
 
   if (req.method === "OPTIONS") {
     json(res, 204, {});
@@ -373,7 +374,7 @@ async function route(req, res) {
   }
 
   if (req.method === "GET" && url.pathname === "/api/version") {
-    const store = readStore();
+    const store = readUserStore(userCode);
     json(res, 200, { version: store.version });
     return;
   }
@@ -384,7 +385,7 @@ async function route(req, res) {
   }
 
   if (req.method === "GET" && url.pathname === "/api/state") {
-    const store = readStore();
+    const store = readUserStore(userCode);
     const [positions, watchlist, market] = await Promise.all([
       hydratePositions(store.positions || []),
       hydrateWatchlist(store.watchlist || []),
@@ -392,6 +393,7 @@ async function route(req, res) {
     ]);
     json(res, 200, {
       ...store,
+      userCode,
       positions,
       watchlist,
       market
@@ -420,7 +422,7 @@ async function route(req, res) {
       json(res, 400, { error: "暂时无法获取该股票行情" });
       return;
     }
-    const store = updateStore((current) => {
+    const store = updateUserStore(userCode, (current) => {
       ensureStoreLists(current);
       const nextItem = {
         id: makeId("pos"),
@@ -448,7 +450,7 @@ async function route(req, res) {
 
   if (req.method === "DELETE" && url.pathname.startsWith("/api/positions/")) {
     const id = url.pathname.split("/").pop();
-    const store = updateStore((current) => {
+    const store = updateUserStore(userCode, (current) => {
       ensureStoreLists(current);
       current.positions = current.positions.filter((item) => item.id !== id);
       return recordEvent(current, "position_remove", { id });
@@ -464,7 +466,7 @@ async function route(req, res) {
       json(res, 400, { error: "暂时无法获取该股票行情" });
       return;
     }
-    const store = updateStore((current) => {
+    const store = updateUserStore(userCode, (current) => {
       ensureStoreLists(current);
       const nextItem = {
         id: makeId("watch"),
@@ -489,7 +491,7 @@ async function route(req, res) {
 
   if (req.method === "DELETE" && url.pathname.startsWith("/api/watchlist/")) {
     const id = url.pathname.split("/").pop();
-    const store = updateStore((current) => {
+    const store = updateUserStore(userCode, (current) => {
       ensureStoreLists(current);
       current.watchlist = current.watchlist.filter((item) => item.id !== id);
       return recordEvent(current, "watch_remove", { id });
@@ -505,12 +507,13 @@ async function route(req, res) {
       json(res, 400, { error: "反馈内容不能为空" });
       return;
     }
-    const store = updateStore((current) => {
+    const store = updateUserStore(userCode, (current) => {
       ensureStoreLists(current);
       current.feedback.unshift({
         id: makeId("feedback"),
         message,
         source: body.source || "web",
+        userCode,
         createdAt: new Date().toISOString()
       });
       current.feedback = current.feedback.slice(0, 200);
@@ -521,14 +524,14 @@ async function route(req, res) {
   }
 
   if (req.method === "GET" && url.pathname === "/api/feedback") {
-    const store = readStore();
+    const store = readUserStore(userCode);
     json(res, 200, { feedback: store.feedback });
     return;
   }
 
   if (req.method === "POST" && url.pathname === "/api/events") {
     const body = await readBody(req);
-    const store = updateStore((current) => recordEvent(current, body.name || "unknown_event", body.payload || {}));
+    const store = updateUserStore(userCode, (current) => recordEvent(current, body.name || "unknown_event", body.payload || {}));
     json(res, 201, { ok: true, eventCount: store.events.length });
     return;
   }
